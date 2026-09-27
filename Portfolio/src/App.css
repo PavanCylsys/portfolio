@@ -236,6 +236,44 @@
   margin-top: 18px;
 }
 
+.selection-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 184, 214, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffeaf4;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.choice-log {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+
+.choice-log span {
+  display: block;
+  color: #f7d9ee;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.choice-log ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #fff;
+}
+
 .choice-btn,
 .inline-btn {
   background: rgba(255, 255, 255, 0.06);

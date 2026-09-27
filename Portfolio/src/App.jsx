@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import './App.css'
 
 const apologyData = {
-  friendName: 'Friend',
+  friendName: 'Priyanka',
   memories: [
     {
       title: 'The good moments',
@@ -137,8 +137,11 @@ function Chapter({ title, subtitle, children, footer }) {
 function Journey({ onRestart, isMuted, onToggleMusic }) {
   const [chapter, setChapter] = useState(0)
   const [memoryOpen, setMemoryOpen] = useState(null)
+  const [chapterChoice, setChapterChoice] = useState('')
   const [finalChoice, setFinalChoice] = useState(null)
   const [angryPosition, setAngryPosition] = useState({ x: 0, y: 0 })
+  const [choiceLog, setChoiceLog] = useState([])
+  const audioContextRef = useRef(null)
 
   const chapterCount = 5
   const progressValue = chapter >= chapterCount ? chapterCount : chapter + 1
@@ -151,6 +154,56 @@ function Journey({ onRestart, isMuted, onToggleMusic }) {
     setAngryPosition({
       x: Math.floor(Math.random() * 28) - 14,
       y: Math.floor(Math.random() * 18) - 9
+    })
+  }
+
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+      }
+    }
+  }, [])
+
+  const playSound = async () => {
+    if (isMuted) return
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    if (!AudioCtx) return
+
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioCtx()
+    }
+
+    const context = audioContextRef.current
+    if (context.state === 'suspended') {
+      await context.resume()
+    }
+
+    const oscillator = context.createOscillator()
+    const gainNode = context.createGain()
+
+    oscillator.type = 'sine'
+    oscillator.frequency.value = 440
+    gainNode.gain.value = 0.0001
+
+    oscillator.connect(gainNode)
+    gainNode.connect(context.destination)
+
+    const now = context.currentTime
+    oscillator.frequency.linearRampToValueAtTime(440, now + 0.12)
+    oscillator.frequency.linearRampToValueAtTime(660, now + 0.24)
+    gainNode.gain.exponentialRampToValueAtTime(0.07, now + 0.05)
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.42)
+
+    oscillator.start(now)
+    oscillator.stop(now + 0.45)
+  }
+
+  const recordChoice = (label) => {
+    setChoiceLog((current) => {
+      const next = [...current, label]
+      return next.slice(-5)
     })
   }
 
@@ -209,7 +262,17 @@ function Journey({ onRestart, isMuted, onToggleMusic }) {
             footer={
               <div className="choice-grid">
                 {['It was my fault', 'I should have handled it better', 'Okay... I really messed up'].map((answer) => (
-                  <button key={answer} type="button" className="choice-btn" onClick={goNext}>
+                  <button
+                    key={answer}
+                    type="button"
+                    className="choice-btn"
+                    onClick={() => {
+                      setChapterChoice(answer)
+                      recordChoice(answer)
+                      playSound()
+                      goNext()
+                    }}
+                  >
                     {answer}
                   </button>
                 ))}
@@ -218,6 +281,7 @@ function Journey({ onRestart, isMuted, onToggleMusic }) {
           >
             <p className="chapter-copy">I’m not here to make excuses.</p>
             <div className="mini-success">Correct answer. You have successfully completed Level 2 😅</div>
+            {chapterChoice && <div className="selection-pill">Selected: {chapterChoice}</div>}
           </Chapter>
         )}
 
@@ -321,15 +385,45 @@ function Journey({ onRestart, isMuted, onToggleMusic }) {
                 <p className="what-next">What happens next?</p>
                 {!finalChoice ? (
                   <div className="choice-grid final-grid">
-                    <button type="button" className="choice-btn" onClick={() => setFinalChoice('talk')}>
+                    <button
+                      type="button"
+                      className="choice-btn"
+                      onClick={() => {
+                        setFinalChoice('talk')
+                        recordChoice('Let’s talk')
+                        playSound()
+                      }}
+                    >
                       ❤️ Let&apos;s talk
                     </button>
-                    <button type="button" className="choice-btn" onClick={() => setFinalChoice('time')}>
+                    <button
+                      type="button"
+                      className="choice-btn"
+                      onClick={() => {
+                        setFinalChoice('time')
+                        recordChoice('I need some time')
+                        playSound()
+                      }}
+                    >
                       🌸 I need some time
                     </button>
                   </div>
                 ) : (
-                  renderFinalResponse()
+                  <>
+                    <div className="selection-pill">Selected: {finalChoice === 'talk' ? 'Let’s talk' : 'I need some time'}</div>
+                    {renderFinalResponse()}
+                  </>
+                )}
+
+                {choiceLog.length > 0 && (
+                  <div className="choice-log">
+                    <span>Selected actions:</span>
+                    <ul>
+                      {choiceLog.map((item, index) => (
+                        <li key={`${item}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
 
@@ -352,19 +446,54 @@ function App() {
     setStarted(false)
   }
 
+  const toggleSound = async () => {
+    setIsMuted((current) => {
+      const nextValue = !current
+
+      if (!nextValue) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext
+        if (AudioCtx) {
+          const context = new AudioCtx()
+          const oscillator = context.createOscillator()
+          const gainNode = context.createGain()
+
+          oscillator.type = 'triangle'
+          oscillator.frequency.value = 392
+          gainNode.gain.value = 0.0001
+
+          oscillator.connect(gainNode)
+          gainNode.connect(context.destination)
+
+          const now = context.currentTime
+          oscillator.frequency.linearRampToValueAtTime(392, now + 0.08)
+          oscillator.frequency.linearRampToValueAtTime(523, now + 0.2)
+          gainNode.gain.exponentialRampToValueAtTime(0.05, now + 0.05)
+          gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.35)
+
+          oscillator.start(now)
+          oscillator.stop(now + 0.38)
+
+          setTimeout(() => context.close(), 500)
+        }
+      }
+
+      return nextValue
+    })
+  }
+
   return (
     <main className="app-shell">
       {!started ? (
         <WelcomeScreen
           onStart={() => setStarted(true)}
           isMuted={isMuted}
-          onToggleMusic={() => setIsMuted((current) => !current)}
+          onToggleMusic={toggleSound}
         />
       ) : (
         <Journey
           onRestart={handleRestart}
           isMuted={isMuted}
-          onToggleMusic={() => setIsMuted((current) => !current)}
+          onToggleMusic={toggleSound}
         />
       )}
     </main>
