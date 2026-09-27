@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import './App.css'
 
 const apologyData = {
-  friendName: 'Priyanka',
+  friendName: ' You Bala Priyanka',
   memories: [
     {
       title: 'The good moments',
